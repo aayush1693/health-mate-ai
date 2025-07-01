@@ -1,0 +1,22 @@
+# Flask Web Framework
+flask
+flask-cors
+gunicorn
+python-dotenv
+
+# Machine Learning (for disease detection models)
+tensorflow
+keras
+numpy
+pandas
+pillow
+scikit-learn
+
+# Google Gemini API (using new google-genai package)
+google-genai
+
+# Geolocation (for hospital/doctor recommendations)
+geopy
+requests
+flask-sock
+chromadb
