@@ -1,0 +1,106 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+venv/
+.venv/
+
+*.zip
+
+pycache__/
+
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+bash/
+
+# Local env files
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Backend (Spring Boot)
+backend/target/
+backend/*.log
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# ML Service (Python)
+ml-service/venv/
+ml-service/__pycache__/
+ml-service/*.pyc
+ml-service/.env
+ml-service/uploads/
+ml-service/models/*.keras
+ml-service/models/*.h5
+
+# Notebooks
+notebooks/.ipynb_checkpoints/
+
+# Database
+*.sql.backup
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules/
+frontend/.vercel/
+frontend/.env
+frontend/.env.local
+frontend/.DS_Store
+frontend/.vscode/
+frontend/Thumbs.db
+frontend/.pnp/
+frontend/.pnp.js
+frontend/.idea/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/bash/
+frontend/.vercel/
