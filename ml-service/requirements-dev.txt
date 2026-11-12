@@ -1,0 +1,5 @@
+# Development / CI-only dependencies (not needed to run the service)
+pytest==8.3.4
+pytest-cov==6.0.0
+python-dotenv==1.0.1
+flake8==7.1.1

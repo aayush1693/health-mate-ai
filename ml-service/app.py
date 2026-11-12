@@ -5,6 +5,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from config import config
 from services import detector, chatbot, recommendation_engine
+from utils.validation import allowed_file, validate_model_type
 import logging
 import uuid
 
@@ -29,11 +30,6 @@ sock = Sock(app)
 
 # Ensure upload directory exists
 os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in config.ALLOWED_EXTENSIONS
 
 # ==================== Live Chat WebSocket ====================
 
@@ -82,7 +78,7 @@ def predict_disease():
                 'error': 'No file selected'
             }), 400
         
-        if not allowed_file(file.filename):
+        if not allowed_file(file.filename, config.ALLOWED_EXTENSIONS):
             return jsonify({
                 'success': False,
                 'error': f'Invalid file type. Allowed: {", ".join(config.ALLOWED_EXTENSIONS)}'
@@ -91,7 +87,7 @@ def predict_disease():
         # Get model type
         model_type = request.form.get('model_type', 'pneumonia')
         
-        if model_type not in ['pneumonia', 'lung_cancer', 'alzheimer']:
+        if not validate_model_type(model_type):
             return jsonify({
                 'success': False,
                 'error': 'Invalid model type. Use: pneumonia, lung_cancer, or alzheimer'
