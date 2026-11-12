@@ -104,3 +104,32 @@ frontend/coverage/
 frontend/*.tsbuildinfo
 frontend/bash/
 frontend/.vercel/
+# ===== ML artifacts (large binaries / generated data) =====
+# Trained model weights are distributed separately, not via git
+*.keras
+*.h5
+*.hdf5
+ml-service/models/*
+
+# ChromaDB vector store is rebuilt by the RAG ingestion script
+chroma_db/
+ml-service/chroma_db/
+
+# Training outputs
+training/**/checkpoints/
+training/**/*.log
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local reports and presentation exports
+*.docx
+*.odt
+*-ultra.pdf
+Updated-*.pdf
+try*.pdf
