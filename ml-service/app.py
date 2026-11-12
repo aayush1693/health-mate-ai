@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -377,6 +378,26 @@ def get_specialties():
     """Get all available specialties"""
     return jsonify(recommendation_engine.get_all_specialties())
 
+
+@app.route('/api/recommendations/catalog', methods=['GET'])
+def get_recommendation_catalog():
+    """Browse/search doctors and hospital names from uploaded data.json."""
+    try:
+        result = recommendation_engine.get_catalog(
+            query=request.args.get('query'),
+            city=request.args.get('city'),
+            province=request.args.get('province'),
+            department=request.args.get('department'),
+            limit=int(request.args.get('limit', 100))
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Recommendation catalog error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/recommendations/for-condition', methods=['POST'])
 def get_recommendations_for_condition():
     """
@@ -390,22 +411,42 @@ def get_recommendations_for_condition():
     try:
         data = request.get_json()
         
-        if not data or 'condition' not in data:
+        if not data:
             return jsonify({
                 'success': False,
-                'error': 'Condition is required'
+                'error': 'Request payload is required'
+            }), 400
+
+        diagnostic_output = data.get('diagnostic_output')
+        if diagnostic_output:
+            condition = diagnostic_output.get('condition') or diagnostic_output.get('prediction')
+        else:
+            condition = data.get('condition')
+
+        if not condition:
+            return jsonify({
+                'success': False,
+                'error': 'Condition or diagnostic_output is required'
             }), 400
         
-        condition = data['condition']
         user_coords = None
         
         if 'lat' in data and 'lng' in data:
             user_coords = {'lat': float(data['lat']), 'lng': float(data['lng'])}
         
-        result = recommendation_engine.get_recommendations_for_condition(
-            condition=condition,
-            user_coords=user_coords
-        )
+        if diagnostic_output:
+            result = recommendation_engine.get_content_based_recommendations(
+                diagnostic_output=diagnostic_output,
+                user_coords=user_coords,
+                city=data.get('city'),
+                needs_emergency=bool(data.get('needs_emergency', False)),
+                limit=int(data.get('limit', 5))
+            )
+        else:
+            result = recommendation_engine.get_recommendations_for_condition(
+                condition=condition,
+                user_coords=user_coords
+            )
         
         return jsonify(result)
         
@@ -415,6 +456,166 @@ def get_recommendations_for_condition():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/recommendations/content-based', methods=['POST'])
+def get_content_based_recommendations():
+    """Get content-based doctor/hospital recommendations from diagnostic output."""
+    try:
+        data = request.get_json()
+        if not data or 'diagnostic_output' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'diagnostic_output is required'
+            }), 400
+
+        diagnostic_output = data['diagnostic_output']
+        user_coords = None
+        if 'lat' in data and 'lng' in data:
+            user_coords = {'lat': float(data['lat']), 'lng': float(data['lng'])}
+
+        result = recommendation_engine.get_content_based_recommendations(
+            diagnostic_output=diagnostic_output,
+            user_coords=user_coords,
+            city=data.get('city'),
+            needs_emergency=bool(data.get('needs_emergency', False)),
+            limit=int(data.get('limit', 5))
+        )
+
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Content-based recommendation error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/recommendations/ai-assist', methods=['POST'])
+def recommendation_ai_assist():
+    """Gemini-only recommendation guidance (no RAG) using doctor/hospital dataset context."""
+    try:
+        data = request.get_json() or {}
+        message = (data.get('message') or '').strip()
+        if not message:
+            return jsonify({
+                'success': False,
+                'error': 'message is required'
+            }), 400
+
+        user_location = None
+        if 'lat' in data and 'lng' in data:
+            user_location = {
+                'lat': float(data.get('lat')),
+                'lng': float(data.get('lng')),
+                'city': data.get('city', '')
+            }
+        elif data.get('city'):
+            user_location = {
+                'city': data.get('city')
+            }
+
+        result = recommendation_engine.get_ai_recommendations(
+            message=message,
+            diagnosis=data.get('diagnosis'),
+            user_location=user_location,
+            limit=int(data.get('limit', 5))
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Recommendation AI assist error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+def _require_admin(payload: dict):
+    username = payload.get('username', '')
+    password = payload.get('password', '')
+    return recommendation_engine.authenticate_admin(username, password)
+
+
+@app.route('/api/recommendations/admin/login', methods=['POST'])
+def recommendations_admin_login():
+    data = request.get_json() or {}
+    if recommendation_engine.authenticate_admin(data.get('username', ''), data.get('password', '')):
+        return jsonify({'success': True, 'message': 'Admin authenticated'})
+    return jsonify({'success': False, 'error': 'Invalid admin credentials'}), 401
+
+
+@app.route('/api/recommendations/admin/entries', methods=['POST'])
+def recommendations_admin_entries():
+    data = request.get_json() or {}
+    if not _require_admin(data):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    return jsonify(recommendation_engine.admin_list_entries())
+
+
+@app.route('/api/recommendations/admin/entry', methods=['POST'])
+def recommendations_admin_add_entry():
+    data = request.get_json() or {}
+    if not _require_admin(data):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    payload = data.get('entry')
+    if not payload:
+        return jsonify({'success': False, 'error': 'entry is required'}), 400
+
+    return jsonify(recommendation_engine.admin_add_entry(payload))
+
+
+@app.route('/api/recommendations/admin/entry/<entry_id>', methods=['PUT'])
+def recommendations_admin_update_entry(entry_id):
+    data = request.get_json() or {}
+    if not _require_admin(data):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    payload = data.get('entry')
+    if not payload:
+        return jsonify({'success': False, 'error': 'entry is required'}), 400
+
+    result = recommendation_engine.admin_update_entry(entry_id, payload)
+    if not result.get('success'):
+        return jsonify(result), 404
+    return jsonify(result)
+
+
+@app.route('/api/recommendations/admin/entry/<entry_id>', methods=['DELETE'])
+def recommendations_admin_delete_entry(entry_id):
+    data = request.get_json() or {}
+    if not _require_admin(data):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    result = recommendation_engine.admin_delete_entry(entry_id)
+    if not result.get('success'):
+        return jsonify(result), 404
+    return jsonify(result)
+
+
+@app.route('/api/recommendations/admin/upload', methods=['POST'])
+def recommendations_admin_upload():
+    """Replace recommendation dataset by uploading doctors JSON array."""
+    username = request.form.get('username', '')
+    password = request.form.get('password', '')
+
+    if not recommendation_engine.authenticate_admin(username, password):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'file is required'}), 400
+
+    upload = request.files['file']
+    if upload.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+    try:
+        payload = json.loads(upload.read().decode('utf-8'))
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid JSON file: {e}'}), 400
+
+    result = recommendation_engine.admin_upload_entries(payload)
+    status = 200 if result.get('success') else 400
+    return jsonify(result), status
 
 # ==================== Error Handlers ====================
 

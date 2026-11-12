@@ -113,7 +113,7 @@ class DiseaseDetector:
     
     def preprocess_image(self, image_path: str, model_type: str) -> np.ndarray:
         """Preprocess image for model prediction"""
-        target_size = config.MODEL_INPUT_SIZES.get(model_type, (224, 224))
+        input_height, input_width = config.MODEL_INPUT_SIZES.get(model_type, (224, 224))
         
         # Load and resize image
         img = Image.open(image_path)
@@ -122,8 +122,9 @@ class DiseaseDetector:
         if img.mode != 'RGB':
             img = img.convert('RGB')
         
-        # Resize
-        img = img.resize(target_size)
+        # Resize image to model input size.
+        # Config stores sizes as (height, width), while PIL expects (width, height).
+        img = img.resize((input_width, input_height))
         
         # Convert to array and normalize
         img_array = np.array(img) / 255.0

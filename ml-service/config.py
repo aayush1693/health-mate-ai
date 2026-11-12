@@ -13,7 +13,14 @@ class Config:
     # Google Gemini API
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
     FILE_SEARCH_STORE_NAME = os.getenv('FILE_SEARCH_STORE_NAME', 'fileSearchStores/q2mobcvwaw6o-he597702gur3')
-    GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash-lite')
+    GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash-lite')
+    GEMINI_LIVE_MODEL = os.getenv('GEMINI_LIVE_MODEL', 'models/gemini-2.5-flash-native-audio-preview-12-2025')
+    GEMINI_API_VERSION = os.getenv('GEMINI_API_VERSION', 'v1beta')
+    GEMINI_EMBEDDING_MODEL = os.getenv('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001')
+
+    # Translation service
+    TRANSLATE_TIMEOUT_SECONDS = float(os.getenv('TRANSLATE_TIMEOUT_SECONDS', '8'))
+    TRANSLATE_USER_AGENT = os.getenv('TRANSLATE_USER_AGENT', 'Mozilla/5.0 (HealthMate AI Translation Service)')
     
     # Model Paths
     PNEUMONIA_MODEL_PATH = os.getenv('PNEUMONIA_MODEL_PATH', 'models/pneumonia_model.keras')

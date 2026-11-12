@@ -6,6 +6,7 @@ import logging
 import traceback
 from google import genai
 from google.genai import types
+from config import config
 
 # Configure Logging - Set to INFO to see the flow
 logging.basicConfig(
@@ -14,9 +15,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Constants
-API_KEY = "AIzaSyD3fbG7FnuRnbQFEgZpD0UMrmW5FtLezh8"
-MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+MODEL = config.GEMINI_LIVE_MODEL
 
 # --- Configuration ---
 CONFIG = types.LiveConnectConfig(
@@ -40,9 +39,21 @@ CONFIG = types.LiveConnectConfig(
     )
 )
 
-client = genai.Client(http_options={"api_version": "v1beta"}, api_key=API_KEY)
+client = None
+if config.GEMINI_API_KEY:
+    try:
+        client = genai.Client(
+            http_options={"api_version": config.GEMINI_API_VERSION},
+            api_key=config.GEMINI_API_KEY,
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize Gemini live client: {e}")
 
 async def gemini_session_handler(ws):
+    if not client:
+        logger.error("Gemini Live chat is unavailable: GEMINI_API_KEY is missing or invalid")
+        return
+
     # Counters for debugging
     client_packets_in = 0
     gemini_packets_out = 0

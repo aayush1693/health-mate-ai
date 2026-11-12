@@ -9,6 +9,7 @@ from google.genai import types
 from config import config
 import PIL.Image
 from services.rag_service import rag_service
+from services.translation_service import translation_service
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +88,16 @@ def chat(message: str, session_id: str = "default", image_path: str = None, use_
         logger.info(f"Processing chat - Session: {session_id}, Image: {image_path is not None}, RAG: {use_rag}")
         
         context_chunks = []
-        user_prompt_text = message
+        translation_meta = translation_service.to_english_for_rag(message)
+        normalized_message = translation_meta['english_message']
+        source_language = translation_meta['source_language']
+
+        user_prompt_text = normalized_message
         system_instruction = NORMAL_SYSTEM_PROMPT
 
         if use_rag:
             # 1. Retrieve Context from ChromaDB
-            context_chunks = rag_service.query(message)
+            context_chunks = rag_service.query(normalized_message)
             context_text = "\n\n".join(context_chunks) if context_chunks else "No relevant medical context found."
 
             # 2. Build User Prompt with Context
@@ -101,7 +106,7 @@ CONTEXT:
 {context_text}
 
 QUESTION:
-{message}
+{normalized_message}
 """
             system_instruction = SYSTEM_PROMPT
         
@@ -121,7 +126,7 @@ QUESTION:
         
         # 4. Generate response
         response = client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model=config.GEMINI_MODEL,
             contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction
@@ -129,7 +134,8 @@ QUESTION:
         )
         
         # Extract response text
-        response_text = response.text
+        response_text_english = response.text
+        response_text = translation_service.from_english_response(response_text_english, source_language)
         
         # Store in conversation history
         if session_id not in conversation_history:
@@ -157,7 +163,12 @@ QUESTION:
             'sources': [], # Could parse from text if prompted to cite, but context is unnamed chunks
             'session_id': session_id,
             'has_sources': len(context_chunks) > 0,
-            'mode': 'rag' if use_rag else 'normal'
+            'mode': 'rag' if use_rag else 'normal',
+            'language': {
+                'source': source_language,
+                'translated_input_to_english': translation_meta['translated_for_rag'],
+                'translated_output_from_english': source_language == 'ne'
+            }
         }
         
     except Exception as e:
