@@ -12,6 +12,7 @@ A comprehensive AI-powered medical assistant system featuring disease detection,
 
 - [Overview](#overview)
 - [Features](#features)
+- [Model Performance](#model-performance)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -23,6 +24,7 @@ A comprehensive AI-powered medical assistant system featuring disease detection,
   - [Frontend Setup](#frontend-setup)
 - [ML Model Training](#ml-model-training)
 - [API Documentation](#api-documentation)
+- [Testing](#testing)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 
@@ -67,6 +69,20 @@ HealthMate AI is a full-stack medical assistant application that leverages artif
 - Animated components with Framer Motion
 - Glass-morphism design elements
 - Interactive data visualizations
+
+## 📊 Model Performance
+
+All three image models were trained in TensorFlow/Keras and evaluated on a held-out test set. Reproducible numbers and curves live in [`healthmate_model_graphs/`](healthmate_model_graphs).
+
+| Model | Task | Accuracy | F1 (macro) | ROC-AUC | Test samples |
+|-------|------|----------|------------|---------|--------------|
+| Pneumonia | Chest X-ray → Normal / Pneumonia | 89.7% | 0.891 | 0.979 | 624 |
+| Lung Cancer | Chest CT → Benign / Malignant / Normal | 81.1% | 0.786 | 0.949 | 412 |
+| Alzheimer's | Brain MRI → 4 dementia stages | 70.8% | 0.593 | 0.904 | 538 |
+
+Per-model confusion matrices, ROC/PR curves, training history and per-class metrics are committed under `healthmate_model_graphs/<model>/`.
+
+> These figures come from `healthmate_model_graphs/all_models_summary.json` — no hand-picked numbers.
 
 ## 🏗️ Architecture
 
@@ -330,6 +346,8 @@ The frontend will start on `http://localhost:3000`
 
 4. Download the trained model and place in `ml-service/models/`
 
+> **Model weights are not committed.** Trained `.keras` files are 25–105 MB each, so they are git-ignored — see `.gitignore`. Re-run the notebooks above to regenerate them, then drop the files in `ml-service/models/` (paths are configured through `PNEUMONIA_MODEL_PATH`, `LUNG_CANCER_MODEL_PATH` and `ALZHEIMER_MODEL_PATH`). The service starts in mock-prediction mode when weights are absent, so the API is usable without them.
+
 ### Kaggle Datasets Used
 
 | Model | Dataset | Kaggle Link |
@@ -383,6 +401,20 @@ curl -X POST http://localhost:5000/api/predict \
   -F "file=@chest_xray.jpg" \
   -F "model_type=pneumonia"
 ```
+
+## 🧪 Testing
+
+The ML service ships with a pytest suite covering the HTTP contract, input validation and the
+image preprocessing path. TensorFlow is stubbed, so the suite runs in a few seconds without
+downloading model weights.
+
+```bash
+cd ml-service
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+CI runs linting plus this suite on every push via `.github/workflows/ci.yml`.
 
 ## 🚢 Deployment
 
