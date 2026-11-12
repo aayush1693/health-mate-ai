@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.8974358974358975,
+  "precision_macro": 0.8893229166666666,
+  "recall_macro": 0.8931623931623931,
+  "f1_macro": 0.8911457822261473,
+  "precision_weighted": 0.8981119791666666,
+  "recall_weighted": 0.8974358974358975,
+  "f1_weighted": 0.8976875020442875,
+  "roc_auc_mean": 0.978862590401052,
+  "pr_auc_mean": 0.9879928117725294,
+  "model": "pneumonia",
+  "display_name": "Pneumonia Detection",
+  "n_samples": 624
+}

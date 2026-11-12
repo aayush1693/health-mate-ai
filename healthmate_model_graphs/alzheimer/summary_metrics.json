@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.70817843866171,
+  "precision_macro": 0.582448534665277,
+  "recall_macro": 0.6450125891740006,
+  "f1_macro": 0.592728318945398,
+  "precision_weighted": 0.7368463993855896,
+  "recall_weighted": 0.70817843866171,
+  "f1_weighted": 0.7150392992843972,
+  "roc_auc_mean": 0.9044156085651366,
+  "pr_auc_mean": 0.7572090130656353,
+  "model": "alzheimer",
+  "display_name": "Alzheimer Detection",
+  "n_samples": 538
+}
