@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Activity } from "lucide-react";
+import { useAuthGuard } from "@/lib/use-auth-guard";
 
 export default function LiveChatPage() {
+    const isAuthorized = useAuthGuard();
   const [isConnected, setIsConnected] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -285,15 +287,17 @@ export default function LiveChatPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    if (!isAuthorized) return null;
+
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 py-8 flex flex-col items-center justify-center">
-        <div className="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            <main className="flex-1 w-full pt-24 pb-8 px-4 sm:px-6 lg:px-8">
+                <div className="w-full max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
             
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div className="p-5 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Activity className="w-6 h-6 text-blue-600" />
@@ -374,13 +378,13 @@ export default function LiveChatPage() {
             </div>
 
             {/* Controls */}
-            <div className="p-6 bg-gray-50 dark:bg-gray-900/50 flex justify-center items-center gap-6">
+            <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap justify-center items-center gap-4 sm:gap-6">
                 
                 {!isConnected ? (
                     <button 
                         onClick={startSession}
                         disabled={status === 'connecting'}
-                        className="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-full font-bold shadow-lg transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
+                        className="px-8 sm:px-10 py-3.5 sm:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-full font-bold shadow-lg transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
                     >
                         <Activity className="w-5 h-5" />
                         {status === 'connecting' ? 'Initializing...' : 'Start Consultation'}
@@ -389,7 +393,7 @@ export default function LiveChatPage() {
                     <>
                         <button 
                             onClick={toggleMic}
-                            className={`p-5 rounded-full transition-all shadow-md ${isMicOn ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 ring-2 ring-blue-100 dark:ring-blue-900' : 'bg-red-100 text-red-600 ring-2 ring-red-100 dark:ring-red-900'}`}
+                            className={`p-4 sm:p-5 rounded-full transition-all shadow-md ${isMicOn ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 ring-2 ring-blue-100 dark:ring-blue-900' : 'bg-red-100 text-red-600 ring-2 ring-red-100 dark:ring-red-900'}`}
                             title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
                         >
                             {isMicOn ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
@@ -397,7 +401,7 @@ export default function LiveChatPage() {
 
                         <button 
                             onClick={toggleVideo}
-                            className={`p-5 rounded-full transition-all shadow-md ${isVideoOn ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 ring-2 ring-blue-100 dark:ring-blue-900' : 'bg-red-100 text-red-600 ring-2 ring-red-100 dark:ring-red-900'}`}
+                            className={`p-4 sm:p-5 rounded-full transition-all shadow-md ${isVideoOn ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 ring-2 ring-blue-100 dark:ring-blue-900' : 'bg-red-100 text-red-600 ring-2 ring-red-100 dark:ring-red-900'}`}
                             title={isVideoOn ? "Turn Camera Off" : "Turn Camera On"}
                         >
                             {isVideoOn ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
@@ -405,7 +409,7 @@ export default function LiveChatPage() {
 
                         <button 
                             onClick={stopSession}
-                            className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
+                            className="px-6 sm:px-8 py-3.5 sm:py-4 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
                         >
                             <PhoneOff className="w-5 h-5" />
                             End Consultation

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -26,8 +26,12 @@ import {
   Search,
   Menu,
   X,
+  LayoutDashboard,
+  Video,
+  Sparkles,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuthGuard } from "@/lib/use-auth-guard";
 import {
   LineChart,
   Line,
@@ -107,8 +111,45 @@ const notifications = [
   { message: "New health tip available", time: "1 day ago", read: true },
 ];
 
+const statCards = [
+  {
+    label: "Heart Rate",
+    value: "72 BPM",
+    icon: Heart,
+    change: "+2%",
+    iconBgClass: "bg-red-100 dark:bg-red-900/30",
+    iconTextClass: "text-red-500",
+  },
+  {
+    label: "Blood Pressure",
+    value: "120/80",
+    icon: Activity,
+    change: "-3%",
+    iconBgClass: "bg-blue-100 dark:bg-blue-900/30",
+    iconTextClass: "text-blue-500",
+  },
+  {
+    label: "Total Scans",
+    value: "12",
+    icon: Brain,
+    change: "+4",
+    iconBgClass: "bg-purple-100 dark:bg-purple-900/30",
+    iconTextClass: "text-purple-500",
+  },
+  {
+    label: "Health Score",
+    value: "92/100",
+    icon: TrendingUp,
+    change: "+5",
+    iconBgClass: "bg-green-100 dark:bg-green-900/30",
+    iconTextClass: "text-green-500",
+  },
+];
+
 export default function DashboardPage() {
+  const isAuthorized = useAuthGuard();
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -127,14 +168,16 @@ export default function DashboardPage() {
   };
 
   const sidebarLinks = [
-    { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: true },
+    { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { label: "AI Detection", icon: Brain, href: "/detect" },
     { label: "Health Chat", icon: MessageCircle, href: "/chat" },
+    { label: "Health Advice", icon: Sparkles, href: "/advice" },
+    { label: "Live Consultation", icon: Video, href: "/live" },
     { label: "Find Care", icon: Building2, href: "/recommendations" },
-    { label: "Reports", icon: FileText, href: "/reports" },
-    { label: "Appointments", icon: Calendar, href: "/appointments" },
-    { label: "Settings", icon: Settings, href: "/settings" },
+    { label: "Admin", icon: Settings, href: "/admin" },
   ];
+
+  if (!isAuthorized) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -173,21 +216,27 @@ export default function DashboardPage() {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {sidebarLinks.map((link, index) => (
+              (() => {
+                const isActive = pathname === link.href;
+                return (
               <Link
                 key={index}
                 href={link.href}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-                  link.active
+                  isActive
                     ? "bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                     : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 }`}
               >
                 <link.icon size={20} />
                 <span className="font-medium">{link.label}</span>
-                {link.active && (
+                {isActive && (
                   <div className="ml-auto w-2 h-2 rounded-full bg-primary-500" />
                 )}
               </Link>
+                );
+              })()
             ))}
           </nav>
 
@@ -306,12 +355,7 @@ export default function DashboardPage() {
         <main className="p-4 lg:p-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[
-              { label: "Heart Rate", value: "72 BPM", icon: Heart, color: "red", change: "+2%" },
-              { label: "Blood Pressure", value: "120/80", icon: Activity, color: "blue", change: "-3%" },
-              { label: "Total Scans", value: "12", icon: Brain, color: "purple", change: "+4" },
-              { label: "Health Score", value: "92/100", icon: TrendingUp, color: "green", change: "+5" },
-            ].map((stat, index) => (
+            {statCards.map((stat, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -320,12 +364,8 @@ export default function DashboardPage() {
                 className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-slate-700"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center bg-${stat.color}-100 dark:bg-${stat.color}-900/30`}
-                  >
-                    <stat.icon
-                      className={`w-6 h-6 text-${stat.color}-500`}
-                    />
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.iconBgClass}`}>
+                    <stat.icon className={`w-6 h-6 ${stat.iconTextClass}`} />
                   </div>
                   <span className={`text-sm font-medium ${stat.change.startsWith("+") ? "text-green-500" : "text-red-500"}`}>
                     {stat.change}
@@ -582,26 +622,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
-  );
-}
-
-function LayoutDashboard(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={props.size || 24}
-      height={props.size || 24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="7" height="9" x="3" y="3" rx="1" />
-      <rect width="7" height="5" x="14" y="3" rx="1" />
-      <rect width="7" height="9" x="14" y="12" rx="1" />
-      <rect width="7" height="5" x="3" y="16" rx="1" />
-    </svg>
   );
 }

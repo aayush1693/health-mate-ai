@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import toast from "react-hot-toast";
+import { useAuthGuard } from "@/lib/use-auth-guard";
 
 interface Message {
   id: string;
@@ -45,6 +46,7 @@ const suggestedQuestions = [
 ];
 
 export default function ChatPage() {
+  const isAuthorized = useAuthGuard();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +90,8 @@ export default function ChatPage() {
       setPreviewUrl(url);
     }
   };
+
+  if (!isAuthorized) return null;
 
   const removeFile = () => {
     setSelectedFile(null);
@@ -206,7 +210,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950 font-sans">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 font-sans">
       <Navbar />
 
       <main className="flex-1 flex flex-col pt-16 relative overflow-hidden">
@@ -232,7 +236,7 @@ export default function ChatPage() {
                     <button
                       key={idx}
                       onClick={() => sendMessage(q.text)}
-                      className="flex items-center gap-3 p-4 text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md transition-all group"
+                      className="flex items-center gap-3 p-4 text-left bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 rounded-2xl hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md transition-all group"
                     >
                       <span className="text-2xl group-hover:scale-110 transition-transform">{q.icon}</span>
                       <span className="text-slate-700 dark:text-slate-300 font-medium group-hover:text-primary-600 dark:group-hover:text-primary-400">
@@ -271,7 +275,7 @@ export default function ChatPage() {
                       className={`group relative max-w-[85%] sm:max-w-[75%] px-5 py-4 rounded-2xl shadow-sm ${
                         message.role === "user"
                           ? "bg-primary-600 text-white rounded-tr-sm"
-                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-sm"
+                          : "bg-slate-100 dark:bg-slate-800/90 text-slate-800 dark:text-slate-100 rounded-tl-sm"
                       }`}
                     >
                       {message.imageUrl && (
@@ -294,7 +298,7 @@ export default function ChatPage() {
 
                       {/* Assistant Actions */}
                       {message.role === "assistant" && (
-                        <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => copyMessage(message.content)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
@@ -333,7 +337,7 @@ export default function ChatPage() {
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
                       <Bot className="w-5 h-5 text-white" />
                     </div>
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-5 py-4 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-2">
+                    <div className="bg-slate-100 dark:bg-slate-800/90 px-5 py-4 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-2">
                       <div className="flex gap-1">
                         <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                         <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -350,9 +354,9 @@ export default function ChatPage() {
         </div>
 
         {/* Input Area */}
-        <div className="w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 sticky bottom-0 z-10">
+        <div className="w-full bg-transparent p-4 sticky bottom-0 z-10">
           <div className="max-w-3xl mx-auto">
-            <div className="relative flex flex-col gap-2 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-3xl border border-transparent focus-within:border-primary-500/30 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all shadow-inner">
+            <div className="relative flex flex-col gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-2 rounded-3xl border border-slate-200/80 dark:border-slate-800 focus-within:border-primary-500/30 transition-all shadow-lg shadow-slate-200/40 dark:shadow-slate-950/30">
               
               {/* File Preview */}
               {previewUrl && (

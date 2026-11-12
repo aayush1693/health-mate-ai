@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import {
@@ -21,6 +22,7 @@ import {
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import toast from "react-hot-toast";
+import { useAuthGuard } from "@/lib/use-auth-guard";
 
 const diseaseModels = [
   {
@@ -75,6 +77,8 @@ interface PredictionResult {
 }
 
 export default function DetectPage() {
+  const isAuthorized = useAuthGuard();
+  const router = useRouter();
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -97,6 +101,8 @@ export default function DetectPage() {
     },
     maxFiles: 1,
   });
+
+  if (!isAuthorized) return null;
 
   const clearImage = () => {
     setUploadedImage(null);
@@ -123,7 +129,13 @@ export default function DetectPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setResult(data);
+        const normalizedResult = {
+          ...data,
+          model_type: selectedModel,
+          condition: data?.prediction,
+        };
+        setResult(normalizedResult);
+        localStorage.setItem("latestDiagnosis", JSON.stringify(normalizedResult));
         toast.success("Analysis complete!");
       } else {
         toast.error(data.error || "Analysis failed");
@@ -425,6 +437,13 @@ export default function DetectPage() {
                           </div>
                         </div>
                       </div>
+
+                      <button
+                        onClick={() => router.push("/advice")}
+                        className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-accent-500 text-white font-semibold hover:opacity-95 transition-opacity"
+                      >
+                        View Advice
+                      </button>
                     </motion.div>
                   )}
                 </div>

@@ -93,19 +93,115 @@ export const mlService = {
 
   getHospitalRecommendations: async (params: {
     specialty?: string;
-    query?: string;
-    filters?: any;
+    city?: string;
+    lat?: number;
+    lng?: number;
+    limit?: number;
   }) => {
-    const response = await mlApi.post("/recommendations/hospitals", params);
+    const response = await mlApi.get("/recommendations/hospitals", { params });
     return response.data;
   },
 
   getDoctorRecommendations: async (params: {
     specialty?: string;
-    query?: string;
-    filters?: any;
+    min_experience?: number;
+    limit?: number;
   }) => {
-    const response = await mlApi.post("/recommendations/doctors", params);
+    const response = await mlApi.get("/recommendations/doctors", { params });
+    return response.data;
+  },
+
+  getRecommendationCatalog: async (params: {
+    query?: string;
+    city?: string;
+    province?: string;
+    department?: string;
+    limit?: number;
+  }) => {
+    const response = await mlApi.get("/recommendations/catalog", { params });
+    return response.data;
+  },
+
+  getContentBasedRecommendations: async (payload: {
+    diagnostic_output: any;
+    lat?: number;
+    lng?: number;
+    city?: string;
+    limit?: number;
+  }) => {
+    const response = await mlApi.post("/recommendations/content-based", payload);
+    return response.data;
+  },
+
+  getAiDoctorHospitalAdvice: async (payload: {
+    message: string;
+    diagnosis?: any;
+    lat?: number;
+    lng?: number;
+    city?: string;
+    limit?: number;
+  }) => {
+    const response = await mlApi.post("/recommendations/ai-assist", payload);
+    return response.data;
+  },
+
+  adminLogin: async (username: string, password: string) => {
+    const response = await mlApi.post("/recommendations/admin/login", {
+      username,
+      password,
+    });
+    return response.data;
+  },
+
+  adminListEntries: async (username: string, password: string) => {
+    const response = await mlApi.post("/recommendations/admin/entries", {
+      username,
+      password,
+    });
+    return response.data;
+  },
+
+  adminAddEntry: async (username: string, password: string, entry: any) => {
+    const response = await mlApi.post("/recommendations/admin/entry", {
+      username,
+      password,
+      entry,
+    });
+    return response.data;
+  },
+
+  adminUpdateEntry: async (
+    username: string,
+    password: string,
+    id: string,
+    entry: any
+  ) => {
+    const response = await mlApi.put(`/recommendations/admin/entry/${id}`, {
+      username,
+      password,
+      entry,
+    });
+    return response.data;
+  },
+
+  adminDeleteEntry: async (username: string, password: string, id: string) => {
+    const response = await mlApi.delete(`/recommendations/admin/entry/${id}`, {
+      data: { username, password },
+    });
+    return response.data;
+  },
+
+  adminUploadJson: async (username: string, password: string, file: File) => {
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("password", password);
+    formData.append("file", file);
+
+    const response = await mlApi.post("/recommendations/admin/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   },
 };
