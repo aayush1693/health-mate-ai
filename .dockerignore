@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+build
+.git
+.env
+.env.*
+__pycache__
+*.pyc
+*.keras
+*.h5
+uploads
+venv
+.venv

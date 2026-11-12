@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: healthmate_db
+      POSTGRES_USER: healthmate_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-healthmate_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthmate_user -d healthmate_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ml-service:
+    build: ./ml-service
+    environment:
+      PORT: 5000
+      CORS_ORIGINS: http://localhost:3000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      FILE_SEARCH_STORE_NAME: ${FILE_SEARCH_STORE_NAME:-}
+    volumes:
+      # Mount trained weights instead of baking ~200 MB into the image
+      - ./ml-service/models:/app/models:ro
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthmate_db
+      SPRING_DATASOURCE_USERNAME: healthmate_user
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-healthmate_password}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+      - ml-service
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_ML_API_URL: http://localhost:5000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
