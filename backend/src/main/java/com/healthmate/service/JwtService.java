@@ -3,6 +3,7 @@ package com.healthmate.service;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -10,17 +11,42 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
+
+    private static final int MIN_SECRET_LENGTH = 32;
+    private static final Set<String> PLACEHOLDER_SECRETS =
+            Set.of("change-me", "changeme", "dev-secret", "your-secret", "example-secret");
 
     @Value("${jwt.secret}")
     private String secretKey;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+    @PostConstruct
+    void validateSecret() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET must be set and must not be blank");
+        }
+
+        String normalized = secretKey.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least " + MIN_SECRET_LENGTH + " characters long");
+        }
+        for (String placeholder : PLACEHOLDER_SECRETS) {
+            if (normalized.contains(placeholder)) {
+                throw new IllegalStateException(
+                        "JWT_SECRET must not contain the placeholder value '" + placeholder + "'");
+            }
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

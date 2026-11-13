@@ -233,25 +233,25 @@ psql -h localhost -U healthmate_user -d healthmate_db
 cd backend
 ```
 
-2. **Configure application properties:**
+2. **Configure environment variables:**
 
-Edit `src/main/resources/application.properties`:
-```properties
-# Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/healthmate_db
-spring.datasource.username=healthmate_user
-spring.datasource.password=healthmate_password_2024
-
-# JWT (Generate a secure secret!)
-jwt.secret=your-256-bit-secret-key-here
-jwt.expiration=86400000
-
-# Email (Configure your SMTP)
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your-email@gmail.com
-spring.mail.password=your-app-password
+Export the required secrets (or copy `.env.example` to `.env` and load it):
+```bash
+export JWT_SECRET="$(openssl rand -base64 48)"   # must be >= 32 characters
+export MAIL_USERNAME="you@example.com"
+export MAIL_PASSWORD="your-gmail-app-password"
 ```
+
+`JWT_SECRET` is required: startup fails if it is blank, shorter than 32 characters, or a known placeholder such as `change-me` or `dev-secret`. Mail credentials default to empty, so configure them to enable verification and password-reset emails.
+
+`application.properties` reads these values directly:
+```properties
+jwt.secret=${JWT_SECRET}
+spring.mail.username=${MAIL_USERNAME:}
+spring.mail.password=${MAIL_PASSWORD:}
+```
+
+> **Rotate secrets regularly.** Rotate `JWT_SECRET` (this invalidates existing tokens) and the mail app password on a schedule and immediately after any suspected exposure. Never commit real values; only `.env.example` belongs in version control.
 
 3. **Build and run:**
 ```bash
@@ -466,7 +466,7 @@ volumes:
 ### Production Checklist
 
 - [ ] Change all default passwords
-- [ ] Generate secure JWT secret
+- [ ] Generate and rotate a secure JWT secret
 - [ ] Configure proper CORS origins
 - [ ] Set up HTTPS/SSL certificates
 - [ ] Configure email service for production
