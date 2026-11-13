@@ -119,6 +119,24 @@ ml-service/chroma_db/
 training/**/checkpoints/
 training/**/*.log
 
+# Training folder (notebooks, experiment artifacts, local only)
+training/
+
+# Model graphs / evaluation artifacts (generated locally, not tracked)
+healthmate_model_graphs/
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# Local proposal / presentation documents
+Final-Proposal*.docx
+*Proposal*.docx
+*proposal*.docx
+
+# Qwen / local agent tooling
+.qwen/
+
 # Python bytecode
 __pycache__/
 *.py[cod]
