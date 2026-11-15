@@ -1,6 +1,7 @@
 package com.healthmate.service;
 
 import com.healthmate.dto.*;
+import com.healthmate.exception.AccountLockedException;
 import com.healthmate.exception.BadRequestException;
 import com.healthmate.exception.ResourceNotFoundException;
 import com.healthmate.model.User;
@@ -11,6 +12,7 @@ import com.healthmate.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,8 @@ public class AuthService {
 
     private static final SecureRandom random = new SecureRandom();
     private static final int CODE_EXPIRATION_MINUTES = 15;
+    private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+    private static final int LOCK_DURATION_MINUTES = 15;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -64,14 +68,40 @@ public class AuthService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (user != null && user.getLockedUntil() != null) {
+            if (user.getLockedUntil().isAfter(LocalDateTime.now())) {
+                throw new AccountLockedException(
+                        "Account temporarily locked due to repeated failed logins. Please try again later.");
+            }
+            user.setLockedUntil(null);
+            user.setFailedLoginAttempts(0);
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (BadCredentialsException ex) {
+            if (user != null) {
+                user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
+                if (user.getFailedLoginAttempts() >= MAX_FAILED_LOGIN_ATTEMPTS) {
+                    user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_DURATION_MINUTES));
+                }
+                userRepository.save(user);
+            }
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        if (user == null) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
 
         if (!user.getEmailVerified()) {
             // Resend verification code

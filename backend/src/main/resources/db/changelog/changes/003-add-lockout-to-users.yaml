@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-add-lockout-to-users
+      author: healthmate
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: failed_login_attempts
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locked_until
+                  type: TIMESTAMP

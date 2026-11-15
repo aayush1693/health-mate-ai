@@ -42,6 +42,14 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Invalid email or password"));
     }
 
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ApiResponse> handleAccountLockedException(AccountLockedException ex) {
+        log.error("Account locked: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.LOCKED)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ApiResponse> handleUsernameNotFoundException(UsernameNotFoundException ex) {
         log.error("User not found: {}", ex.getMessage());
