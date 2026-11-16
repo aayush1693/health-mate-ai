@@ -11,7 +11,10 @@ import java.util.Optional;
 public interface VerificationCodeRepository extends JpaRepository<VerificationCode, Long> {
     
     Optional<VerificationCode> findByUserAndCodeAndType(User user, String code, VerificationCode.CodeType type);
-    
+
+    Optional<VerificationCode> findFirstByUserAndTypeAndUsedFalseOrderByCreatedAtDesc(
+            User user, VerificationCode.CodeType type);
+
     Optional<VerificationCode> findByCodeAndType(String code, VerificationCode.CodeType type);
     
     void deleteAllByUserAndType(User user, VerificationCode.CodeType type);

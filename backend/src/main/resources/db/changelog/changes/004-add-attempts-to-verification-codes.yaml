@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-add-attempts-to-verification-codes
+      author: healthmate
+      changes:
+        - addColumn:
+            tableName: verification_codes
+            columns:
+              - column:
+                  name: attempts
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
@@ -35,6 +37,7 @@ public class AuthService {
 
     private static final SecureRandom random = new SecureRandom();
     private static final int CODE_EXPIRATION_MINUTES = 15;
+    private static final int MAX_VERIFICATION_CODE_ATTEMPTS = 5;
     private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
     private static final int LOCK_DURATION_MINUTES = 15;
 
@@ -123,18 +126,13 @@ public class AuthService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ApiResponse verifyEmail(VerifyEmailRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        VerificationCode verificationCode = verificationCodeRepository
-                .findByUserAndCodeAndType(user, request.getCode(), VerificationCode.CodeType.EMAIL_VERIFICATION)
-                .orElseThrow(() -> new BadRequestException("Invalid verification code"));
-
-        if (!verificationCode.isValid()) {
-            throw new BadRequestException("Verification code has expired or already been used");
-        }
+        VerificationCode verificationCode = loadValidVerificationCode(
+                user, request.getCode(), VerificationCode.CodeType.EMAIL_VERIFICATION);
 
         user.setEmailVerified(true);
         userRepository.save(user);
@@ -161,34 +159,23 @@ public class AuthService {
         return ApiResponse.success("Password reset code sent to your email");
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ApiResponse verifyResetCode(VerifyEmailRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        VerificationCode verificationCode = verificationCodeRepository
-                .findByUserAndCodeAndType(user, request.getCode(), VerificationCode.CodeType.PASSWORD_RESET)
-                .orElseThrow(() -> new BadRequestException("Invalid verification code"));
-
-        if (!verificationCode.isValid()) {
-            throw new BadRequestException("Verification code has expired or already been used");
-        }
+        loadValidVerificationCode(user, request.getCode(), VerificationCode.CodeType.PASSWORD_RESET);
 
         return ApiResponse.success("Code verified successfully");
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ApiResponse resetPassword(ResetPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        VerificationCode verificationCode = verificationCodeRepository
-                .findByUserAndCodeAndType(user, request.getCode(), VerificationCode.CodeType.PASSWORD_RESET)
-                .orElseThrow(() -> new BadRequestException("Invalid verification code"));
-
-        if (!verificationCode.isValid()) {
-            throw new BadRequestException("Verification code has expired or already been used");
-        }
+        VerificationCode verificationCode = loadValidVerificationCode(
+                user, request.getCode(), VerificationCode.CodeType.PASSWORD_RESET);
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
@@ -217,6 +204,40 @@ public class AuthService {
         }
 
         return ApiResponse.success("Verification code resent");
+    }
+
+    private VerificationCode loadValidVerificationCode(
+            User user, String code, VerificationCode.CodeType type) {
+        VerificationCode verificationCode = verificationCodeRepository
+                .findFirstByUserAndTypeAndUsedFalseOrderByCreatedAtDesc(user, type)
+                .orElseThrow(() -> new BadRequestException("Invalid verification code"));
+
+        if (verificationCode.isExpired()) {
+            throw new BadRequestException("Verification code has expired or already been used");
+        }
+
+        if (code == null || !codesMatch(verificationCode.getCode(), code)) {
+            int attempts = verificationCode.getAttempts() + 1;
+            verificationCode.setAttempts(attempts);
+
+            if (attempts >= MAX_VERIFICATION_CODE_ATTEMPTS) {
+                verificationCode.setUsed(true);
+                verificationCodeRepository.save(verificationCode);
+                throw new BadRequestException(
+                        "Too many failed verification attempts. Please request a new verification code.");
+            }
+
+            verificationCodeRepository.save(verificationCode);
+            throw new BadRequestException("Invalid verification code");
+        }
+
+        return verificationCode;
+    }
+
+    private boolean codesMatch(String expected, String provided) {
+        return MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                provided.getBytes(StandardCharsets.UTF_8));
     }
 
     private String generateVerificationCode() {

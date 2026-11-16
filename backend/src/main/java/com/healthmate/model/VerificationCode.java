@@ -36,6 +36,10 @@ public class VerificationCode {
     @Builder.Default
     private Boolean used = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private int attempts = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
